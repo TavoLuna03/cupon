@@ -7,8 +7,10 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/tavo/prueba/punto2/models"
-	"github.com/tavo/prueba/punto2/usecases"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
+
+	"github.com/tavo/prueba/repositories"
 )
 
 type Handler func(ctx context.Context) (Response, error)
@@ -22,38 +24,21 @@ type Response events.APIGatewayProxyResponse
 // Handler is our lambda handler invoked by the `lambda.Start` function call
 func Adapter() Handler {
 	return func(ctx context.Context) (Response, error) {
-		var buf bytes.Buffer
-		a := []models.Item{
-			{
-				ID:    "MLA1",
-				Price: 100,
-			},
-			{
-				ID:    "MLA2",
-				Price: 210,
-			},
-			{
-				ID:    "MLA3",
-				Price: 260,
-			},
-			{
-				ID:    "MLA4",
-				Price: 80,
-			},
-			{
-				ID:    "MLA5",
-				Price: 90,
-			},
-		}
 
-		optima := []models.Item{}
-		solutionItems := []models.Item{}
-		finalSolution := make([]string, 0)
-		usecase := usecases.NewUseCases(optima, solutionItems, finalSolution)
-		response := usecase.Calculate(a, 500)
-		body, err := json.Marshal(map[string]interface{}{
-			"message": response,
-		})
+		sess := session.Must(session.NewSessionWithOptions(session.Options{
+			SharedConfigState: session.SharedConfigEnable,
+		}))
+
+		// Create DynamoDB client
+		svc := dynamodb.New(sess)
+		repository := repositories.NewItemRepository(svc)
+		itemsDynamo, err := repository.GetItems()
+		if err != nil {
+			return Response{StatusCode: 404}, err
+		}
+		var buf bytes.Buffer
+
+		body, err := json.Marshal(itemsDynamo)
 		if err != nil {
 			return Response{StatusCode: 404}, err
 		}
@@ -65,8 +50,7 @@ func Adapter() Handler {
 			IsBase64Encoded: false,
 			Body:            buf.String(),
 			Headers: map[string]string{
-				"Content-Type":           "application/json",
-				"X-MyCompany-Func-Reply": "hello-handler",
+				"Content-Type": "application/json",
 			},
 		}
 		return resp, nil
@@ -74,6 +58,5 @@ func Adapter() Handler {
 }
 
 func main() {
-
 	lambda.Start(Adapter())
 }

@@ -1,9 +1,5 @@
 package main
 
-import (
-	"fmt"
-)
-
 type Item struct {
 	ID    string
 	Price int
@@ -26,8 +22,6 @@ func (o *OptimaItems) calculateRec(items []Item, ammountMaximo int, optima bool)
 		// comprobar si es mejor solucion que la ultima
 		if o.validateOptimalSolution(ammountMaximo) {
 			// actualizar optimaItems con solucion
-			fmt.Printf("SolutionItems")
-			fmt.Println(o.SolutionItems)
 			o.OptimaItems = o.SolutionItems
 			o.FinalItems = getIDs(o.SolutionItems)
 		}

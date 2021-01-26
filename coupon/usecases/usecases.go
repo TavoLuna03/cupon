@@ -1,30 +1,30 @@
 package usecases
 
 import (
-	"fmt"
+	"errors"
 
-	"github.com/tavo/prueba/punto2/models"
+	"github.com/tavo/prueba/coupon/models"
 )
 
+// UseCases entity
 type UseCases struct {
 	OptimaItems   []models.Item
 	SolutionItems []models.Item
 	FinalItems    []string
 }
 
-func (o *UseCases) Calculate(items []models.Item, amount int) []string {
+// Calculate call to funtion recursive
+func (o *UseCases) Calculate(items []models.Item, amount float32) []string {
 	o.calculateRec(items, amount, false)
 	return o.FinalItems
 }
 
-func (o *UseCases) calculateRec(items []models.Item, ammountMaximo int, optima bool) {
+func (o *UseCases) calculateRec(items []models.Item, ammountMaximo float32, optima bool) {
 	//validar si es solucion optima
 	if optima {
 		// comprobar si es mejor solucion que la ultima
 		if o.validateOptimalSolution(ammountMaximo) {
 			// actualizar UseCasescon solucion
-			fmt.Printf("SolutionItems")
-			fmt.Println(o.SolutionItems)
 			o.OptimaItems = o.SolutionItems
 			o.FinalItems = getIDs(o.SolutionItems)
 		}
@@ -56,11 +56,40 @@ func (o *UseCases) validateExistense(itemValidate models.Item) bool {
 	return false
 }
 
-func (o *UseCases) validateOptimalSolution(ammountMaximo int) bool {
+func (o *UseCases) validateOptimalSolution(ammountMaximo float32) bool {
 	totalSolution := calculateTotal(o.SolutionItems)
 	totalOptima := calculateTotal(o.OptimaItems)
 
 	return (totalSolution > totalOptima) && (totalSolution < ammountMaximo) && (len(o.SolutionItems) > len(o.OptimaItems))
+}
+
+// GetItemWithPrice get price by item
+func (o *UseCases) GetItemWithPrice(ids []string, items []models.Item) []models.Item {
+	var result []models.Item
+	for _, id := range ids {
+		for _, item := range items {
+			if item.ID == id {
+				result = append(result, item)
+			}
+		}
+	}
+	return result
+}
+
+// ValidatePriceMin get price by item
+func (o *UseCases) ValidatePriceMin(price float32, items []models.Item) error {
+	var result []models.Item
+	for _, item := range items {
+		if item.Price < price {
+			result = append(result, item)
+		}
+	}
+
+	if len(result) == 0 {
+		return errors.New("ammount insufficiency : ValidatePriceMin")
+	}
+
+	return nil
 }
 
 func getIDs(items []models.Item) []string {
@@ -71,8 +100,8 @@ func getIDs(items []models.Item) []string {
 	return ids
 }
 
-func calculateTotal(items []models.Item) int {
-	var sum int
+func calculateTotal(items []models.Item) float32 {
+	var sum float32
 	for _, item := range items {
 		sum = sum + item.Price
 	}

@@ -2,9 +2,27 @@ service: cupon
 
 frameworkVersion: '>=1.28.0 <2.0.0'
 
+custom:
+  active:       ${file(conf.yml):conf}
+  serviceName:  coupon
+
 provider:
   name: aws
   runtime: go1.x
+  region: us-east-1
+  memorySize: 128
+
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+        - dynamodb:Scan
+      Resource:
+        - arn:aws:dynamodb:${self:provider.region}:${self:custom.active.account}:table/items-test
 
 package:
   exclude:
@@ -13,10 +31,28 @@ package:
     - ./bin/**
 
 functions:
-  punto2:
-    handler: bin/punto2
+  coupon:
+    handler: bin/coupon
+    timeout: 30
     events:
       - http:
-          path: punto2
+          path: coupon
+          method: post
+  
+  listCoupons:
+    handler: bin/listCoupons
+    timeout: 30
+    events:
+      - http:
+          path: listCoupons
           method: get
+  
+  createItem:
+    handler: bin/createItem
+    timeout: 30
+    events:
+      - http:
+          path: createItem
+          method: post
+  
 

@@ -1,15 +1,16 @@
-package main
+package usecases
 
 import (
 	"reflect"
 	"testing"
+
+	"github.com/tavo/prueba/coupon/models"
 )
 
 func TestCalculate(t *testing.T) {
-	var b OptimaItems
 	want := []string{"MLA1", "MLA2", "MLA4", "MLA5"}
 
-	a := []Item{
+	a := []models.Item{
 		{
 			ID:    "MLA1",
 			Price: 100,
@@ -31,8 +32,11 @@ func TestCalculate(t *testing.T) {
 			Price: 90,
 		},
 	}
-	got := b.calculate(a, 500)
+
+	finalSolution := make([]string, 0)
+	usecase := NewUseCases([]models.Item{}, []models.Item{}, finalSolution)
+	got := usecase.Calculate(a, float32(500))
 	if !reflect.DeepEqual(got, want) {
-		t.Errorf("Calculate) = %v, want %v", got, want)
+		t.Errorf("Calculate() = %v, want %v", got, want)
 	}
 }
