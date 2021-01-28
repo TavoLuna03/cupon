@@ -1,4 +1,4 @@
-# Challenge técnico - Mercado Libre
+# Challenge
 
 # Dependencias 
 
@@ -27,7 +27,6 @@
 -  Al desplegar en consola se muestra el endpoint del servicio
 
 
-
 # Uso de la API "Punto 2"
 
 - Items creados de pruebas "MLA905913105", "MLA906002266","MLA906002298", "MLA906003946","MLA906004194"
@@ -36,10 +35,13 @@
     - "email":"test_user_41464011@testuser.com"
     - "password":"qatest5737"
 
-
-- [endpoint punto 2](https://9f0ybavyh3.execute-api.us-east-1.amazonaws.com/dev/coupon)
+- Servicio POST `https://9f0ybavyh3.execute-api.us-east-1.amazonaws.com/dev/coupon`
 
     ## Body ejemplo
 
     `{"item_ids": ["MLA905913105", "MLA906002266","MLA906002298", "MLA906003946","MLA906004194"],"amount": 500}`
 
+
+# Pruebas y coverage 
+
+    -  Usa en la raíz del proyecto `go test ./... -cover` 
