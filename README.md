@@ -4,11 +4,11 @@
 
 - Serverless Framework
 
-    Instalacion  [Serverless Framework](https://www.serverless.com/framework/docs/providers/aws/guide/installation/)
+    - Instalacion  [Serverless Framework](https://www.serverless.com/framework/docs/providers/aws/guide/installation/)
 
 - AWS CLi 
 
-    Crear usuario aws y agregar credenciales [Serverless AWS] https://www.serverless.com/framework/docs/providers/aws/guide/credentials/
+   - Crear usuario aws y agregar credenciales [Serverless AWS] https://www.serverless.com/framework/docs/providers/aws/guide/credentials/
 
 # Configuración
 
@@ -16,9 +16,9 @@
 
 - Asignar las variables     
 
-    account:  1234123421342133  - ID usuario en AWS
-    token:    "APP_USR-410832320990733" - Token mercadolibre
-    host:     "https://api.mercadolibre.com"
+    - account:  1234123421342133  - ID usuario en AWS
+    - token:    "APP_USR-410832320990733" - Token mercadolibre
+    - host:     "https://api.mercadolibre.com"
 
 # Make y deploy de la Lambda 
 
