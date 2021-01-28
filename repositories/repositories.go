@@ -1,80 +1,74 @@
 package repositories
 
 import (
-	"fmt"
-	"strconv"
+	"encoding/json"
+	"errors"
+	"io/ioutil"
+	"net/http"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/tavo/prueba/coupon/models"
 )
 
-const table = "items-test"
-
-// ItemRepository intance to item repository
-type ItemRepository struct {
-	client *dynamodb.DynamoDB
+// Repository instance repository
+type Repository struct {
+	client *http.Client
+	host   string
 }
 
-// CreateItem create item to Dynamo
-func (i *ItemRepository) CreateItem(id string, ammount float32) error {
-	ammountItem := fmt.Sprintf("%f", ammount)
-	_, err := i.client.PutItem(
-		&dynamodb.PutItemInput{
-			Item: map[string]*dynamodb.AttributeValue{
-				"id": {
-					S: aws.String(id),
-				},
-				"amount": {
-					N: aws.String(ammountItem),
-				},
-			},
-			TableName: aws.String(table),
-		},
-	)
-
-	if err != nil {
-		return err
-	}
-	return nil
+// BodyItem entity
+type BodyItem struct {
+	Code int         `json:"code"`
+	Body models.Item `json:"body"`
 }
 
-// GetItems get all items
-func (i *ItemRepository) GetItems() ([]models.Item, error) {
-	params := &dynamodb.ScanInput{
-		TableName: aws.String(table),
-	}
-	result, err := i.client.Scan(params)
+const itemURL = "/items"
+
+//GetItemByID get price by id
+func (i *Repository) GetItemByID(ids string) ([]models.Item, error) {
+
+	response, err := i.client.Get(i.host + itemURL + "?ids=" + ids + "&attributes=id,price")
 	if err != nil {
 		return []models.Item{}, err
 	}
 
-	elements, err := i.hydrate(result.Items)
-	if err != nil {
-		return []models.Item{}, err
-	}
-	return elements, nil
-}
+	defer response.Body.Close()
 
-func (i *ItemRepository) hydrate(items []map[string]*dynamodb.AttributeValue) ([]models.Item, error) {
-	itemsDynamo := make([]models.Item, len(items))
-	for i, item := range items {
-		itemsDynamo[i].ID = *item["id"].S
-
-		if v, ok := item["amount"]; ok {
-			value, err := strconv.ParseFloat(*v.N, 32)
-			if err != nil {
-				return []models.Item{}, err
-			}
-			itemsDynamo[i].Price = float32(value)
+	if response.StatusCode != http.StatusOK {
+		bodyErr, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			return []models.Item{}, errors.New(string(bodyErr))
 		}
 	}
-	return itemsDynamo, nil
+
+	var bodyItems []BodyItem
+	byteValue, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return []models.Item{}, err
+	}
+
+	err = json.Unmarshal(byteValue, &bodyItems)
+	if err != nil {
+		return []models.Item{}, err
+	}
+
+	var items []models.Item
+	for _, itemRes := range bodyItems {
+		item := models.Item{
+			ID:    itemRes.Body.ID,
+			Price: itemRes.Body.Price,
+		}
+		items = append(items, item)
+	}
+	return items, nil
 }
 
-// NewItemRepository trigger new repository
-func NewItemRepository(client *dynamodb.DynamoDB) *ItemRepository {
-	return &ItemRepository{
+// NewRepository initializer
+func NewRepository(
+	client *http.Client,
+	host string,
+) *Repository {
+	return &Repository{
 		client: client,
+		host:   host,
 	}
 }

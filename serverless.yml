@@ -39,20 +39,20 @@ functions:
           path: coupon
           method: post
   
-  listCoupons:
-    handler: bin/listCoupons
-    timeout: 30
-    events:
-      - http:
-          path: listCoupons
-          method: get
+  # listCoupons:
+  #   handler: bin/listCoupons
+  #   timeout: 30
+  #   events:
+  #     - http:
+  #         path: listCoupons
+  #         method: get
   
-  createItem:
-    handler: bin/createItem
-    timeout: 30
-    events:
-      - http:
-          path: createItem
-          method: post
+  # createItem:
+  #   handler: bin/createItem
+  #   timeout: 30
+  #   events:
+  #     - http:
+  #         path: createItem
+  #         method: post
   
 

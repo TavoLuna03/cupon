@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"net/http"
+	"strings"
+	"time"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
 
 	"github.com/tavo/prueba/coupon/models"
 	"github.com/tavo/prueba/coupon/usecases"
@@ -26,35 +27,54 @@ type Response events.APIGatewayProxyResponse
 // RequestBody is a struct to request in the APIGatewayProxyRequest
 type RequestBody struct {
 	ItemIds []string `json:"item_ids"`
-	Amount  int      `json:"amount"`
+	Amount  float32  `json:"amount"`
 }
 
-// Handler is our lambda handler invoked by the `lambda.Start` function call
-func Adapter() Handler {
+// Transport contract transport
+type Transport struct {
+	accept        string
+	Authorization string
+	rt            http.RoundTripper
+}
+
+func (t *Transport) transport() http.RoundTripper {
+	if t.rt != nil {
+		return t.rt
+	}
+	return http.DefaultTransport
+}
+
+// ResponseAPI contract response
+type ResponseAPI struct {
+	Items []string `json:"item_ids"`
+	Total float32  `json:"total"`
+}
+
+// RoundTrip add headers
+func (t *Transport) RoundTrip(r *http.Request) (*http.Response, error) {
+	r.Header.Set("Accept", t.accept)
+	return t.transport().RoundTrip(r)
+}
+
+// RepositoryInterface is a contract for a repository in this lambda
+type RepositoryInterface interface {
+	GetItemByID(ids string) ([]models.Item, error)
+}
+
+// Adapter  function call
+func Adapter(repository RepositoryInterface) Handler {
 	return func(ctx context.Context, req events.APIGatewayProxyRequest) (Response, error) {
 		var requestBody RequestBody
 		err := json.Unmarshal([]byte(req.Body), &requestBody)
 		if err != nil {
-			return Response{StatusCode: 404}, err
+			return Response{StatusCode: http.StatusNotFound}, err
 		}
 
-		sess := session.Must(session.NewSessionWithOptions(session.Options{
-			SharedConfigState: session.SharedConfigEnable,
-		}))
+		ids := strings.Join(requestBody.ItemIds, ",")
 
-		// Create DynamoDB client
-		svc := dynamodb.New(sess)
-		repository := repositories.NewItemRepository(svc)
-		itemsDynamo, err := repository.GetItems()
+		items, err := repository.GetItemByID(ids)
 		if err != nil {
-			return Response{
-				StatusCode:      200,
-				IsBase64Encoded: false,
-				Body:            "error",
-				Headers: map[string]string{
-					"Content-Type": "application/json",
-				},
-			}, nil
+			return Response{StatusCode: http.StatusNotFound}, err
 		}
 
 		var buf bytes.Buffer
@@ -62,11 +82,10 @@ func Adapter() Handler {
 		finalSolution := make([]string, 0)
 		usecase := usecases.NewUseCases([]models.Item{}, []models.Item{}, finalSolution)
 
-		items := usecase.GetItemWithPrice(requestBody.ItemIds, itemsDynamo)
 		err = usecase.ValidatePriceMin(float32(requestBody.Amount), items)
 		if err != nil {
 			return Response{
-				StatusCode:      404,
+				StatusCode:      http.StatusNotFound,
 				IsBase64Encoded: false,
 				Body:            err.Error(),
 				Headers: map[string]string{
@@ -74,24 +93,21 @@ func Adapter() Handler {
 				},
 			}, nil
 		}
-
 		response := usecase.Calculate(items, float32(requestBody.Amount))
-		body, err := json.Marshal(response)
-		if err != nil {
-			return Response{
-				StatusCode:      404,
-				IsBase64Encoded: false,
-				Body:            err.Error(),
-				Headers: map[string]string{
-					"Content-Type": "application/json",
-				},
-			}, nil
+		total := usecase.CalculateTotal(usecase.OptimaItems)
+
+		responseService := ResponseAPI{
+			Items: response,
+			Total: total,
 		}
 
+		body, err := json.Marshal(responseService)
+		if err != nil {
+			return Response{StatusCode: http.StatusNotFound}, err
+		}
 		json.HTMLEscape(&buf, body)
-
 		resp := Response{
-			StatusCode:      200,
+			StatusCode:      http.StatusOK,
 			IsBase64Encoded: false,
 			Body:            buf.String(),
 			Headers: map[string]string{
@@ -103,5 +119,14 @@ func Adapter() Handler {
 }
 
 func main() {
-	lambda.Start(Adapter())
+	client := http.Client{
+		Timeout: time.Second * time.Duration(30),
+	}
+	client.Transport = &Transport{
+		accept:        "application/json",
+		Authorization: "Bearer APP_USR-410832320990733-012702-046a02fd4a6f3e07a4060b590594588b-707187680",
+		rt:            client.Transport,
+	}
+	repository := repositories.NewRepository(&client, "https://api.mercadolibre.com")
+	lambda.Start(Adapter(repository))
 }
