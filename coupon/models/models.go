@@ -2,7 +2,7 @@ package models
 
 type Item struct {
 	ID    string
-	Price float32
+	Price float64
 }
 
 type OptimaItems struct {

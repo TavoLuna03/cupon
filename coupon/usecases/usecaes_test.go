@@ -36,7 +36,7 @@ func TestCalculate(t *testing.T) {
 
 	finalSolution := make([]string, 0)
 	usecase := NewUseCases([]models.Item{}, []models.Item{}, finalSolution)
-	got := usecase.Calculate(a, float32(500.00))
+	got := usecase.Calculate(a, float64(500))
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("Calculate() = %v, want %v", got, want)
 	}
@@ -70,7 +70,7 @@ func TestCalculateSuperate(t *testing.T) {
 
 	finalSolution := make([]string, 0)
 	usecase := NewUseCases([]models.Item{}, []models.Item{}, finalSolution)
-	got := usecase.Calculate(a, float32(1000))
+	got := usecase.Calculate(a, float64(1000))
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("Calculate() = %v, want %v", got, want)
 	}

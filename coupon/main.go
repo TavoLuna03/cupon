@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -27,7 +29,7 @@ type Response events.APIGatewayProxyResponse
 // RequestBody is a struct to request in the APIGatewayProxyRequest
 type RequestBody struct {
 	ItemIds []string `json:"item_ids"`
-	Amount  float32  `json:"amount"`
+	Amount  int      `json:"amount"`
 }
 
 // Transport contract transport
@@ -47,7 +49,7 @@ func (t *Transport) transport() http.RoundTripper {
 // ResponseAPI contract response
 type ResponseAPI struct {
 	Items []string `json:"item_ids"`
-	Total float32  `json:"total"`
+	Total float64  `json:"total"`
 }
 
 // RoundTrip add headers
@@ -72,6 +74,7 @@ func Adapter(repository RepositoryInterface) Handler {
 
 		ids := strings.Join(requestBody.ItemIds, ",")
 
+		// get items Mercadolibre
 		items, err := repository.GetItemByID(ids)
 		if err != nil {
 			return Response{StatusCode: http.StatusNotFound}, err
@@ -81,8 +84,8 @@ func Adapter(repository RepositoryInterface) Handler {
 
 		finalSolution := make([]string, 0)
 		usecase := usecases.NewUseCases([]models.Item{}, []models.Item{}, finalSolution)
-
-		err = usecase.ValidatePriceMin(float32(requestBody.Amount), items)
+		fmt.Println(requestBody.Amount)
+		err = usecase.ValidatePriceMin(float64(requestBody.Amount), items)
 		if err != nil {
 			return Response{
 				StatusCode:      http.StatusNotFound,
@@ -93,8 +96,9 @@ func Adapter(repository RepositoryInterface) Handler {
 				},
 			}, nil
 		}
-		response := usecase.Calculate(items, float32(requestBody.Amount))
-		total := usecase.CalculateTotal(usecase.OptimaItems)
+		response := usecase.Calculate(items, float64(requestBody.Amount))
+		finalItems := usecase.GetItemWithPrice(response, items)
+		total := usecase.CalculateTotal(finalItems)
 
 		responseService := ResponseAPI{
 			Items: response,
@@ -119,14 +123,18 @@ func Adapter(repository RepositoryInterface) Handler {
 }
 
 func main() {
+	token := os.Getenv("TOKEN")
+	host := os.Getenv("HOST")
+
+	fmt.Printf("asdfsdaf %v", token)
 	client := http.Client{
 		Timeout: time.Second * time.Duration(30),
 	}
 	client.Transport = &Transport{
 		accept:        "application/json",
-		Authorization: "Bearer APP_USR-410832320990733-012702-046a02fd4a6f3e07a4060b590594588b-707187680",
+		Authorization: "Bearer " + token,
 		rt:            client.Transport,
 	}
-	repository := repositories.NewRepository(&client, "https://api.mercadolibre.com")
+	repository := repositories.NewRepository(&client, host)
 	lambda.Start(Adapter(repository))
 }

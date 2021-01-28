@@ -2,7 +2,6 @@ package usecases
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/tavo/prueba/coupon/models"
 )
@@ -15,17 +14,16 @@ type UseCases struct {
 }
 
 // Calculate call to funtion recursive
-func (o *UseCases) Calculate(items []models.Item, amount float32) []string {
+func (o *UseCases) Calculate(items []models.Item, amount float64) []string {
 	o.calculateRec(items, amount, false)
-	fmt.Printf("%v", o.FinalItems)
 	return o.FinalItems
 }
 
-func (o *UseCases) calculateRec(items []models.Item, ammountMaximo float32, optima bool) {
+func (o *UseCases) calculateRec(items []models.Item, ammountMaximo float64, optima bool) {
 	//validar si es solucion optima
 	if optima {
 		// comprobar si es mejor solucion que la ultima
-		if o.validateOptimalSolution() {
+		if o.validateOptimalSolution(ammountMaximo) {
 			// actualizar solucion
 			o.OptimaItems = o.SolutionItems
 			o.FinalItems = getIDs(o.SolutionItems)
@@ -38,8 +36,8 @@ func (o *UseCases) calculateRec(items []models.Item, ammountMaximo float32, opti
 				if ammountMaximo > o.CalculateTotal(o.SolutionItems)+item.Price {
 					// añadir item a solucion items
 					o.SolutionItems = append(o.SolutionItems, item)
-					if o.validateOptimalSolution() {
-						// actualizar UseCasescon solucion
+					if o.validateOptimalSolution(ammountMaximo) {
+						// actualizar UseCases con solucion
 						o.calculateRec(items, ammountMaximo, true)
 					}
 					o.calculateRec(items, ammountMaximo, false)
@@ -62,11 +60,11 @@ func (o *UseCases) validateExistense(itemValidate models.Item) bool {
 	return false
 }
 
-func (o *UseCases) validateOptimalSolution() bool {
+func (o *UseCases) validateOptimalSolution(ammountMaximo float64) bool {
 	totalSolution := o.CalculateTotal(o.SolutionItems)
 	totalOptima := o.CalculateTotal(o.OptimaItems)
 
-	return (totalSolution > totalOptima) && (len(o.SolutionItems) > len(o.OptimaItems))
+	return (totalSolution > totalOptima) && (totalSolution < ammountMaximo)
 }
 
 // GetItemWithPrice get price by item
@@ -83,7 +81,7 @@ func (o *UseCases) GetItemWithPrice(ids []string, items []models.Item) []models.
 }
 
 // ValidatePriceMin get price by item
-func (o *UseCases) ValidatePriceMin(price float32, items []models.Item) error {
+func (o *UseCases) ValidatePriceMin(price float64, items []models.Item) error {
 	var result []models.Item
 	for _, item := range items {
 		if item.Price < price {
@@ -99,8 +97,8 @@ func (o *UseCases) ValidatePriceMin(price float32, items []models.Item) error {
 }
 
 // CalculateTotal get total
-func (o *UseCases) CalculateTotal(items []models.Item) float32 {
-	var sum float32
+func (o *UseCases) CalculateTotal(items []models.Item) float64 {
+	var sum float64
 	for _, item := range items {
 		sum = sum + item.Price
 	}

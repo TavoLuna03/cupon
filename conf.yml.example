@@ -1,0 +1,4 @@
+conf:
+  account:                          "id aws"
+  token:                            "APP_USR-410832320990733"
+  host:                             "https://api.mercadolibre.com"

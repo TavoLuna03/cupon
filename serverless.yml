@@ -11,6 +11,9 @@ provider:
   runtime: go1.x
   region: us-east-1
   memorySize: 128
+  environment:
+    TOKEN: ${self:custom.active.token}
+    HOST: ${self:custom.active.host}
 
   iamRoleStatements:
     - Effect: Allow
